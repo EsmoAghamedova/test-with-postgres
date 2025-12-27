@@ -15,11 +15,12 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 db_url = os.getenv("DATABASE_URL")
 
 if db_url:
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-        
+    # normalize Render old scheme
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    # force psycopg (v3) driver so SQLAlchemy won't try psycopg2
     if db_url.startswith("postgresql://"):
-        db_url = db_url.replace("postgresql:///", "postgresql+psycopg://", 1)
+        db_url = "postgresql+psycopg://" + db_url[len("postgresql://"):]
 
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     USING_POSTGRES = True

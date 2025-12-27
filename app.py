@@ -8,10 +8,26 @@ from models import Tip, User
 from routes import main
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '1234567890'
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "dev-secret-key")
+
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'app.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db_url = os.getenv("DATABASE_URL")
+
+if db_url:
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    USING_POSTGRES = True
+else:
+    instance_dir = os.path.join(basedir, "instance")
+    os.makedirs(instance_dir, exist_ok=True)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(instance_dir, "app.db")
+    USING_POSTGRES = False
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
@@ -42,12 +58,7 @@ def ensure_seed_data():
             "username": "admin",
             "email": os.getenv("ADMIN_EMAIL", "admin@calmspace.test"),
             "password": os.getenv("ADMIN_PASSWORD", "admin1234"),
-        },
-        {
-            "username": "esmira",
-            "email": "esmira.agamedovate03@geolab.edu.ge",
-            "password": "EsmoAdmin2009<3",
-        },
+        }
     ]
 
     for admin in admins_to_seed:
@@ -95,7 +106,8 @@ with app.app_context():
     _add_alias('/login', 'login', 'main.login', methods=['GET', 'POST'])
 
     db.create_all()
-    ensure_schema()
+    if not USING_POSTGRES:
+        ensure_schema()
     ensure_seed_data()
 
 if __name__ == "__main__":

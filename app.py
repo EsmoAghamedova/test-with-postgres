@@ -34,6 +34,7 @@ else:
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
+print("USING DATABASE:", app.config["SQLALCHEMY_DATABASE_URI"])
 
 app.register_blueprint(main)
 print("URL map:")
